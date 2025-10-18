@@ -1,22 +1,37 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLoginMutation } from '@/redux/api/apiSlice';
-import { useAppDispatch } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setCredentials } from '@/redux/slices/authSlice';
 import { validateEmail } from '@/utils/validation';
 import FormInput from '@/components/ui/form-input';
 import Button from '@/components/ui/button';
 import { Icons } from '@/lib/icons';
+import Loading from '../loading';
 
 const Login = () => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
   const dispatch = useAppDispatch();
+
   const [login, { isLoading }] = useLoginMutation();
 
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setIsRedirecting(true);
+      router.push('/');
+    }
+  }, [isAuthenticated, router]);
+
+  if (isRedirecting) {
+    return <Loading />;
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

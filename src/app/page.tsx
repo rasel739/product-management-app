@@ -53,14 +53,12 @@ export default function Home() {
     }
   }, [isMounted, isAuthenticated, router]);
 
-  // Reset to page 1 when search query or category changes
   useEffect(() => {
     dispatch(setCurrentPage(1));
   }, [searchQuery, selectedCategory, dispatch]);
 
   const shouldSearch = searchQuery.trim().length > 0;
 
-  // Search query results
   const {
     data: searchResults,
     isLoading: isSearchLoading,
@@ -68,7 +66,6 @@ export default function Home() {
     refetch: refetchSearch,
   } = useSearchProductsQuery({ searchedText: searchQuery }, { skip: !shouldSearch });
 
-  // Regular query results - fetch ALL products when not searching
   const {
     data: allProducts,
     isLoading: isRegularLoading,
@@ -83,16 +80,13 @@ export default function Home() {
     { skip: shouldSearch }
   );
 
-  // Determine which data to use
   const isLoading = shouldSearch ? isSearchLoading : isRegularLoading;
   const error = shouldSearch ? searchError : regularError;
   const refetch = shouldSearch ? refetchSearch : refetchRegular;
 
-  // Get all items
   const allItems = shouldSearch ? searchResults : allProducts;
   const totalItems = allItems?.length || 0;
 
-  // Calculate pagination on client side
   const offset = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = allItems?.slice(offset, offset + itemsPerPage) || [];
 
@@ -118,7 +112,6 @@ export default function Home() {
       await deleteProduct(deleteModal.productId).unwrap();
       setDeleteModal({ isOpen: false, productId: '', productName: '' });
 
-      // Check if we need to go back a page after deletion
       const remainingItems = totalItems - 1;
       const maxPage = Math.ceil(remainingItems / itemsPerPage);
       if (currentPage > maxPage && maxPage > 0) {
@@ -140,7 +133,6 @@ export default function Home() {
     return null;
   }
 
-  // Calculate if pagination should be shown
   const showPagination = totalItems > itemsPerPage;
 
   return (
@@ -148,13 +140,11 @@ export default function Home() {
       <AppNavbar />
 
       <main className='container mx-auto px-4 py-8'>
-        {/* Header Section */}
         <div className='mb-8'>
           <h1 className='text-4xl font-bold text-primary mb-2'>Products</h1>
           <p className='text-gray-600'>Browse and manage your product catalog</p>
         </div>
 
-        {/* Search and Filter Section */}
         <div className='bg-white rounded-xl shadow-md p-6 mb-8'>
           <div className='flex flex-col lg:flex-row gap-4 mb-6'>
             <SearchBar onSearch={handleSearch} />
@@ -175,7 +165,6 @@ export default function Home() {
           />
         </div>
 
-        {/* Products Grid */}
         {isLoading ? (
           <div className='flex justify-center py-12'>
             <Spinner size='lg' />
@@ -215,7 +204,6 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Pagination - Only show if there are more items than itemsPerPage */}
             {showPagination && (
               <Pagination
                 key={`pagination-${currentPage}`}
@@ -229,7 +217,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, productId: '', productName: '' })}
