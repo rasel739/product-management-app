@@ -1,3 +1,4 @@
+'use client';
 import { cn } from '@/helpers';
 import { ButtonHTMLAttributes, ReactNode } from 'react';
 

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { logout } from '@/redux/slices/authSlice';
-import Button from '@/components/ui/button';
 import { Icons } from '@/lib/icons';
 import Image from 'next/image';
 
@@ -39,13 +38,6 @@ const AppNavbar = () => {
           {/* Actions */}
           <div className='flex items-center gap-4'>
             <span className='text-sm text-gray-300 hidden sm:block'>{email}</span>
-
-            <Link href='/products/create'>
-              <Button variant='secondary' size='sm' className='flex items-center gap-2'>
-                <Icons.Add className='w-4 h-4' />
-                <span className='hidden sm:inline'>Add Product</span>
-              </Button>
-            </Link>
 
             <button
               onClick={handleLogout}

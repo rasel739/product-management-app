@@ -1,3 +1,4 @@
+'use client';
 import { TextareaHTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/helpers';
 

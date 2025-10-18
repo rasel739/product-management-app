@@ -35,3 +35,19 @@ export const debounce = <T extends (...args: any[]) => any>(
     timeoutId = setTimeout(() => func(...args), delay);
   };
 };
+
+export const isValidUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const getValidImages = (images: string[]): string[] => {
+  if (!Array.isArray(images)) return [];
+  return images.filter(isValidUrl);
+};

@@ -45,6 +45,7 @@ export const apiSlice = createApi({
 
         return `/products?${queryParams.toString()}`;
       },
+
       providesTags: (result) =>
         result
           ? [
@@ -52,6 +53,11 @@ export const apiSlice = createApi({
               { type: 'Products' as const, id: 'LIST' },
             ]
           : [{ type: 'Products' as const, id: 'LIST' }],
+    }),
+
+    getProductById: builder.query<Product, string>({
+      query: (id) => `/products/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Product', id }],
     }),
 
     getProductBySlug: builder.query<Product, string>({
@@ -113,6 +119,7 @@ export const apiSlice = createApi({
 export const {
   useLoginMutation,
   useGetProductsQuery,
+  useGetProductByIdQuery,
   useGetProductBySlugQuery,
   useSearchProductsQuery,
   useCreateProductMutation,

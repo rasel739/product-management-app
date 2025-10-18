@@ -1,7 +1,7 @@
 'use client';
 
-import { formatPrice, truncateText } from '@/helpers';
 import { Product } from '@/types';
+import { formatPrice, truncateText, getValidImages } from '@/helpers';
 import { Eye, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,14 +15,18 @@ interface ProductCardProps {
 const ProductCard = ({ product, onDelete }: ProductCardProps) => {
   const [imageError, setImageError] = useState(false);
 
+  // Get valid images
+  const validImages = getValidImages(product.images);
+  const imageSrc = validImages[0] || null;
+
   return (
     <div className='group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden'>
       {/* Image */}
       <Link href={`/products/${product.slug}`}>
         <div className='relative h-56 bg-gray-100 overflow-hidden'>
-          {!imageError ? (
+          {imageSrc && !imageError ? (
             <Image
-              src={product.images[0] || '/placeholder-image.jpg'}
+              src={imageSrc}
               alt={product.name}
               fill
               className='object-cover group-hover:scale-110 transition-transform duration-300'

@@ -2,25 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
+  useDeleteProductMutation,
   useGetProductsQuery,
   useSearchProductsQuery,
-  useDeleteProductMutation,
 } from '@/redux/api/apiSlice';
 import { setCurrentPage, setSearchQuery, setSelectedCategory } from '@/redux/slices/productsSlice';
-
-import Button from '@/components/ui/button';
-import Link from 'next/link';
 import AppNavbar from '@/components/ui/app-navbar';
-import ProductCard from '@/components/products/product-card';
-import { Icons } from '@/lib/icons';
 import SearchBar from '@/components/products/search-bar';
+import Button from '@/components/ui/button';
 import CategoryFilter from '@/components/products/category-filter';
 import Spinner from '@/components/ui/spinner';
+import { EmptyState, ErrorDisplay } from '@/components/ui/global-error';
+import ProductCard from '@/components/products/product-card';
 import Pagination from '@/components/products/pagination';
 import ConfirmModal from '@/components/products/confirm-modal';
-import { EmptyState, ErrorDisplay } from '@/components/ui/global-error';
+import { Icons } from '@/lib/icons';
 
 export default function Home() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function Home() {
     (state) => state.products
   );
 
+  const [isMounted, setIsMounted] = useState(false);
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -41,33 +43,58 @@ export default function Home() {
     productName: '',
   });
 
-  // Redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isMounted, isAuthenticated, router]);
 
-  // Calculate pagination offset
-  const offset = (currentPage - 1) * itemsPerPage;
+  // Reset to page 1 when search query or category changes
+  useEffect(() => {
+    dispatch(setCurrentPage(1));
+  }, [searchQuery, selectedCategory, dispatch]);
 
-  // Fetch products based on search or filter
   const shouldSearch = searchQuery.trim().length > 0;
 
+  // Search query results
   const {
-    data: products,
-    isLoading,
-    error,
-    refetch,
-  } = shouldSearch
-    ? // eslint-disable-next-line react-hooks/rules-of-hooks
-      useSearchProductsQuery({ searchedText: searchQuery })
-    : // eslint-disable-next-line react-hooks/rules-of-hooks
-      useGetProductsQuery({
-        offset,
-        limit: itemsPerPage,
-        categoryId: selectedCategory || undefined,
-      });
+    data: searchResults,
+    isLoading: isSearchLoading,
+    error: searchError,
+    refetch: refetchSearch,
+  } = useSearchProductsQuery({ searchedText: searchQuery }, { skip: !shouldSearch });
+
+  // Regular query results - fetch ALL products when not searching
+  const {
+    data: allProducts,
+    isLoading: isRegularLoading,
+    error: regularError,
+    refetch: refetchRegular,
+  } = useGetProductsQuery(
+    {
+      offset: 0,
+      limit: 1000,
+      categoryId: selectedCategory || undefined,
+    },
+    { skip: shouldSearch }
+  );
+
+  // Determine which data to use
+  const isLoading = shouldSearch ? isSearchLoading : isRegularLoading;
+  const error = shouldSearch ? searchError : regularError;
+  const refetch = shouldSearch ? refetchSearch : refetchRegular;
+
+  // Get all items
+  const allItems = shouldSearch ? searchResults : allProducts;
+  const totalItems = allItems?.length || 0;
+
+  // Calculate pagination on client side
+  const offset = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = allItems?.slice(offset, offset + itemsPerPage) || [];
 
   const handleSearch = (query: string) => {
     dispatch(setSearchQuery(query));
@@ -90,24 +117,36 @@ export default function Home() {
     try {
       await deleteProduct(deleteModal.productId).unwrap();
       setDeleteModal({ isOpen: false, productId: '', productName: '' });
+
+      // Check if we need to go back a page after deletion
+      const remainingItems = totalItems - 1;
+      const maxPage = Math.ceil(remainingItems / itemsPerPage);
+      if (currentPage > maxPage && maxPage > 0) {
+        dispatch(setCurrentPage(maxPage));
+      }
+
       refetch();
     } catch (err) {
       console.error('Failed to delete product:', err);
+      alert('Failed to delete product. Please try again.');
     }
   };
+
+  if (!isMounted) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return null;
   }
 
-  // Get paginated products for search results
-  const paginatedProducts =
-    shouldSearch && products ? products.slice(offset, offset + itemsPerPage) : products;
+  // Calculate if pagination should be shown
+  const showPagination = totalItems > itemsPerPage;
 
-  const totalItems = products?.length || 0;
   return (
     <div className='min-h-screen bg-secondary'>
       <AppNavbar />
+
       <main className='container mx-auto px-4 py-8'>
         {/* Header Section */}
         <div className='mb-8'>
@@ -120,9 +159,12 @@ export default function Home() {
           <div className='flex flex-col lg:flex-row gap-4 mb-6'>
             <SearchBar onSearch={handleSearch} />
             <Link href='/products/create' className='lg:ml-auto'>
-              <Button variant='primary' className='w-full lg:w-auto'>
+              <Button
+                variant='primary'
+                className='w-full lg:w-auto flex justify-center items-center'
+              >
                 <Icons.Add className='w-5 h-5 mr-2' />
-                Add Product
+                <span> Add Product</span>
               </Button>
             </Link>
           </div>
@@ -146,20 +188,24 @@ export default function Home() {
             message={
               searchQuery
                 ? 'Try adjusting your search terms'
+                : selectedCategory
+                ? 'No products in this category'
                 : 'Get started by adding your first product'
             }
             action={
-              <Link href='/products/create'>
-                <Button variant='primary'>
-                  <Icons.Add className='w-5 h-5 mr-2' />
-                  Add Product
-                </Button>
-              </Link>
+              !searchQuery && !selectedCategory ? (
+                <Link href='/products/create'>
+                  <Button variant='primary'>
+                    <Plus className='w-5 h-5 mr-2' />
+                    Add Product
+                  </Button>
+                </Link>
+              ) : null
             }
           />
         ) : (
           <>
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8'>
               {paginatedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -169,13 +215,16 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Pagination */}
-            <Pagination
-              currentPage={currentPage}
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
-            />
+            {/* Pagination - Only show if there are more items than itemsPerPage */}
+            {showPagination && (
+              <Pagination
+                key={`pagination-${currentPage}`}
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+              />
+            )}
           </>
         )}
       </main>
