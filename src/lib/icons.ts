@@ -8,6 +8,8 @@ import {
   Edit,
   Trash2,
   Tag,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 
 export const Icons = {
@@ -20,4 +22,6 @@ export const Icons = {
   Edit: Edit,
   Delete: Trash2,
   Tag: Tag,
+  Refresh: RefreshCw,
+  Alert: AlertCircle,
 };
