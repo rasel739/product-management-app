@@ -1,3 +1,4 @@
+'use client';
 import { SelectHTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/helpers';
 

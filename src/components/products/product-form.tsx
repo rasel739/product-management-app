@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { validateProductForm } from '@/utils/validation';
@@ -24,15 +24,28 @@ export const ProductForm = ({ initialData, onSubmit, isLoading, mode }: ProductF
   const { data: categories, isLoading: isCategoriesLoading } = useGetCategoriesQuery();
 
   const [formData, setFormData] = useState<ProductFormData>({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    images: initialData?.images.join(', ') || '',
-    price: initialData?.price.toString() || '',
-    categoryId: initialData?.category.id || '',
+    name: '',
+    description: '',
+    images: '',
+    price: '',
+    categoryId: '',
   });
 
   const [errors, setErrors] = useState<ProductFormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        images: Array.isArray(initialData.images) ? initialData.images.join(', ') : '',
+        price: initialData.price?.toString() || '',
+        categoryId: initialData.category?.id || '',
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
